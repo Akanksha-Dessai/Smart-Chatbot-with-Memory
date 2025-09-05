@@ -1,0 +1,24 @@
+# FastAPI and web server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# OpenAI integration
+openai==1.99.9
+
+# Mem0 integration
+mem0ai==0.1.117
+
+# Configuration management
+pydantic-settings==2.0.3
+
+# CORS support (included with FastAPI)
+# Additional utilities
+python-multipart==0.0.6
+
+# Logging and monitoring
+python-json-logger==2.0.7
+
+# Development dependencies (optional)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
