@@ -94,10 +94,13 @@ class Mem0Service:
         try:
             logger.info(f"Searching memories for user {user_id} with query: {query}")
             
-            # Use the same format as JavaScript examples
+            # Use the same format as JavaScript examples with proper filters
             options = {
                 "version": "v2",
-                "user_id": user_id
+                "user_id": user_id,
+                "filters": {
+                    "user_id": user_id
+                }
             }
             
             if categories:
@@ -134,12 +137,15 @@ class Mem0Service:
         try:
             logger.info(f"Retrieving all memories for user {user_id}")
             
-            # Use search with broad query to get all memories
+            # Use search with a general query and proper filters
             memories = self.client.search(
-                "",  # Empty query to get all
+                "user memories",  # General query instead of empty
                 **{
                     "version": "v2",
-                    "user_id": user_id
+                    "user_id": user_id,
+                    "filters": {
+                        "user_id": user_id
+                    }
                 }
             )
             

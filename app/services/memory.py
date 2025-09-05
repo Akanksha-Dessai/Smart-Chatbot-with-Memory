@@ -21,7 +21,10 @@ class MemoryService:
         self.memories: Dict[str, List[Dict]] = {}  # user_id -> list of conversations
         self.max_memories_per_user = 50  # Limit to prevent memory bloat
         self.mem0_service = mem0_service
-        logger.info("Enhanced memory service initialized with Mem0 integration")
+        # Cache for Mem0 memories to reduce API calls
+        self.mem0_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self.cache_timeout = 300  # 5 minutes
+        logger.info("Enhanced memory service initialized with Mem0 integration and caching")
     
     def add_conversation(
         self, 
@@ -52,12 +55,22 @@ class MemoryService:
         if len(self.memories[user_id]) > self.max_memories_per_user:
             self.memories[user_id] = self.memories[user_id][-self.max_memories_per_user:]
         
-        # Store important information in Mem0
-        self._store_important_memories(user_id, user_message, assistant_response)
+        # Store important information in Mem0 (background task - non-blocking)
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            # Create background task that doesn't block the response
+            loop.create_task(self._store_important_memories(user_id, user_message, assistant_response))
+        except RuntimeError:
+            # If no event loop is running, run in background
+            import threading
+            def store_memory():
+                asyncio.run(self._store_important_memories(user_id, user_message, assistant_response))
+            threading.Thread(target=store_memory, daemon=True).start()
         
         logger.info(f"Added conversation to memory for user {user_id}")
     
-    def _store_important_memories(
+    async def _store_important_memories(
         self, 
         user_id: str, 
         user_message: str, 
@@ -80,22 +93,15 @@ class MemoryService:
             
             # Store in Mem0 with metadata (like JavaScript examples)
             metadata = {
-                "timestamp": int(datetime.utcnow().timestamp()),
+                "timestamp": int(datetime.now().timestamp()),  # Use local time instead of UTC
                 "type": "conversation",
                 "user_message_length": len(user_message),
-                "assistant_response_length": len(assistant_response)
+                "assistant_response_length": len(assistant_response),
+                "timezone": "local"
             }
             
-            # Use asyncio to run the async Mem0 operation
-            import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(
-                    self.mem0_service.add_memory(user_id, messages, metadata)
-                )
-            finally:
-                loop.close()
+            # Call the async Mem0 operation directly
+            await self.mem0_service.add_memory(user_id, messages, metadata)
                 
         except Exception as e:
             logger.error(f"Error storing memory in Mem0 for user {user_id}: {str(e)}")
@@ -176,7 +182,7 @@ class MemoryService:
     
     async def get_all_memories(self, user_id: str) -> List[Dict[str, Any]]:
         """
-        Get all memories for a user from Mem0
+        Get all memories for a user from Mem0 with caching
         
         Args:
             user_id: User identifier
@@ -185,7 +191,18 @@ class MemoryService:
             List of all user memories from Mem0
         """
         try:
+            # Check cache first
+            cache_key = f"{user_id}_all"
+            if cache_key in self.mem0_cache:
+                logger.info(f"Using cached memories for user {user_id}")
+                return self.mem0_cache[cache_key]
+            
+            # Fetch from Mem0 API
             memories = await self.mem0_service.get_all_memories(user_id)
+            
+            # Cache the result
+            self.mem0_cache[cache_key] = memories
+            
             logger.info(f"Retrieved {len(memories)} total memories for user {user_id}")
             return memories
         except Exception as e:
@@ -221,11 +238,18 @@ class MemoryService:
             fact_metadata = {
                 "type": "important_fact",
                 "importance": importance,
-                "timestamp": int(datetime.utcnow().timestamp()),
+                "timestamp": int(datetime.now().timestamp()),  # Use local time
+                "timezone": "local",
                 **(metadata or {})
             }
             
             result = await self.mem0_service.add_memory(user_id, messages, fact_metadata)
+            
+            # Clear cache for this user since we added new memory
+            cache_key = f"{user_id}_all"
+            if cache_key in self.mem0_cache:
+                del self.mem0_cache[cache_key]
+            
             logger.info(f"Stored important fact for user {user_id}: {fact[:50]}...")
             return result
         except Exception as e:
