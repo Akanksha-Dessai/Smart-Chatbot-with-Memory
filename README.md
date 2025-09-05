@@ -51,6 +51,7 @@ OPENAI_MODEL=gpt-3.5-turbo
 OPENAI_TEMPERATURE=0.7
 OPENAI_MAX_TOKENS=1000
 APP_NAME=Smart Chatbot
+MEM0_API_KEY=your_mem0_api_key
 DEBUG=false
 ```
 
