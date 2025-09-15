@@ -1,0 +1,10 @@
+//Why init.py is file is there?
+
+app/                    # Main package
+├── __init__.py        # Makes 'app' a package
+├── models/            # Sub-package
+│   └── __init__.py    # Makes 'models' a package
+├── routes/            # Sub-package  
+│   └── __init__.py    # Makes 'routes' a package
+└── services/          # Sub-package
+    └── __init__.py    # Makes 'services' a package

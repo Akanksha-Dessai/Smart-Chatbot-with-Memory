@@ -3,9 +3,9 @@ Health check routes for monitoring application status
 """
 
 from fastapi import APIRouter
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
-from app.services.memory import memory_service
+# Memory service no longer needed - handled by OpenAI tool calls
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -20,22 +20,19 @@ async def health_check():
         dict: Health status and basic information
     """
     try:
-        # Get memory statistics
-        memory_stats = memory_service.get_memory_stats()
-        
         return {
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "app_name": settings.app_name,
             "version": "1.0.0",
-            "memory_stats": memory_stats,
+            "memory_integration": "Mem0 with OpenAI tool calls",
             "openai_model": settings.openai_model
         }
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         return {
             "status": "unhealthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "error": str(e)
         }
 
@@ -48,11 +45,9 @@ async def detailed_health_check():
         dict: Detailed health status and system information
     """
     try:
-        memory_stats = memory_service.get_memory_stats()
-        
         return {
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "app_name": settings.app_name,
             "version": "1.0.0",
             "debug_mode": settings.debug,
@@ -61,11 +56,9 @@ async def detailed_health_check():
                 "temperature": settings.openai_temperature,
                 "max_tokens": settings.openai_max_tokens
             },
-            "memory_stats": memory_stats,
+            "memory_integration": "Mem0 with OpenAI tool calls",
             "endpoints": {
                 "chat_stream": "/api/chat",
-                "chat_simple": "/api/chat/simple",
-                "chat_history": "/api/chat/history/{user_id}",
                 "health": "/api/health"
             }
         }
@@ -73,6 +66,6 @@ async def detailed_health_check():
         logger.error(f"Detailed health check failed: {str(e)}")
         return {
             "status": "unhealthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "error": str(e)
         }

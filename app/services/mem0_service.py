@@ -1,7 +1,6 @@
 """
 
 Mem0 service for intelligent memory management using proper Mem0 API format
-Based on the JavaScript examples in the MEM0 folder
 """
 
 import asyncio
@@ -182,6 +181,67 @@ class Mem0Service:
             
         except Exception as e:
             logger.error(f"Error deleting memory {memory_id} for user {user_id}: {str(e)}")
+            return {"error": str(e)}
+    
+    async def update_memory(
+        self, 
+        memory_id: str, 
+        user_id: str, 
+        content: str, 
+        importance: float = 0.5, 
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Update an existing memory
+        
+        Args:
+            memory_id: Memory identifier
+            user_id: User identifier
+            content: New content for the memory
+            importance: Importance score (0.0 to 1.0)
+            metadata: Optional metadata
+            
+        Returns:
+            Dictionary with update result
+        """
+        if not self.client:
+            logger.error("Mem0 client not initialized")
+            return {"error": "Memory service not available"}
+        
+        try:
+            logger.info(f"Updating memory {memory_id} for user {user_id}")
+            
+            # For now, we'll delete the old memory and add a new one
+            # This is because Mem0 might not have a direct update method
+            delete_result = await self.delete_memory(memory_id, user_id)
+            
+            if "error" in delete_result:
+                return delete_result
+            
+            # Add the updated memory
+            add_result = await self.add_memory(
+                user_id=user_id,
+                messages=[{"role": "user", "content": content}],
+                metadata={
+                    "importance": importance,
+                    "type": "updated_memory",
+                    **(metadata or {})
+                }
+            )
+            
+            if "error" in add_result:
+                return add_result
+            
+            logger.info(f"Successfully updated memory {memory_id} for user {user_id}")
+            return {
+                "message": f"Memory {memory_id} updated successfully",
+                "new_memory_id": add_result.get("id", "unknown"),
+                "content": content,
+                "importance": importance
+            }
+            
+        except Exception as e:
+            logger.error(f"Error updating memory {memory_id} for user {user_id}: {str(e)}")
             return {"error": str(e)}
     
     async def delete_all_memories(self, user_id: str) -> Dict[str, Any]:

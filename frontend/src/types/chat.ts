@@ -29,25 +29,5 @@ export interface HealthResponse {
   timestamp: string;
   app_name: string;
   version: string;
-  memory_stats: {
-    total_users: number;
-    total_conversations: number;
-    max_memories_per_user: number;
-  };
   openai_model: string;
-}
-
-export interface Memory {
-  id: string;
-  memory?: string;
-  content?: string;
-  metadata?: {
-    timestamp?: string;
-    importance?: number;
-    type?: string;
-    [key: string]: any;
-  };
-  score?: number;
-  created_at?: string;
-  updated_at?: string;
 }

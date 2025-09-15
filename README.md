@@ -1,6 +1,6 @@
 # Smart Chatbot Backend
 
-A FastAPI-based chatbot backend with OpenAI streaming responses and memory-ready architecture.
+A FastAPI-based chatbot backend with OpenAI streaming responses and automatic memory management using Mem0.
 
 ## Features
 
